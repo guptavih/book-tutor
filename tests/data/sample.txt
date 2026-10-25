@@ -1,0 +1,2 @@
+This is a test of hyphen-
+ation and   extra spaces. It also has a BOM.
