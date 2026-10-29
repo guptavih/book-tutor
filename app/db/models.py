@@ -1,6 +1,6 @@
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy import String, Integer, ForeignKey, Text, DateTime, Boolean
-from datetime import datetime
+from datetime import datetime, UTC
 
 class Base(DeclarativeBase):
     pass
@@ -12,9 +12,9 @@ class Book(Base):
     title: Mapped[str] = mapped_column(String(255))
     author: Mapped[str] = mapped_column(String(255), nullable=True)
     language: Mapped[str] = mapped_column(String(10))
-    format: Mapped[str] = mapped_column(String(10))  # e.g., "epub", "pdf"
-    raw_text: Mapped[str] = mapped_column(Text)      # full extracted text
-    uploaded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    format: Mapped[str] = mapped_column(String(10))
+    raw_text: Mapped[str] = mapped_column(Text)
+    uploaded_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
     
     units: Mapped[list["Unit"]] = relationship(back_populates="book", cascade="all, delete-orphan")
 
@@ -25,6 +25,7 @@ class Unit(Base):
     book_id: Mapped[int] = mapped_column(ForeignKey("books.id"))
     title: Mapped[str] = mapped_column(String(255))
     sequence: Mapped[int] = mapped_column(Integer)
+    is_draft: Mapped[bool] = mapped_column(Boolean, default=True)
     
     book: Mapped["Book"] = relationship(back_populates="units")
     modules: Mapped[list["Module"]] = relationship(back_populates="unit", cascade="all, delete-orphan")
@@ -37,10 +38,9 @@ class Module(Base):
     title: Mapped[str] = mapped_column(String(255))
     sequence: Mapped[int] = mapped_column(Integer)
     raw_text: Mapped[str] = mapped_column(Text)
-    
-    # Exact character offsets into the source book (Week 2 requirement)
     source_char_start: Mapped[int] = mapped_column(Integer)  
     source_char_end: Mapped[int] = mapped_column(Integer)    
+    is_draft: Mapped[bool] = mapped_column(Boolean, default=True)
     
     unit: Mapped["Unit"] = relationship(back_populates="modules")
     vocabulary: Mapped[list["VocabularyItem"]] = relationship(back_populates="module", cascade="all, delete-orphan")
@@ -65,9 +65,17 @@ class GrammarPoint(Base):
     module_id: Mapped[int] = mapped_column(ForeignKey("modules.id"))
     rule: Mapped[str] = mapped_column(String(255))          
     explanation: Mapped[str] = mapped_column(Text)          
-    is_idiom: Mapped[bool] = mapped_column(Boolean, default=False) # Added for your regional sayings idea!
+    is_idiom: Mapped[bool] = mapped_column(Boolean, default=False) 
     
     module: Mapped["Module"] = relationship(back_populates="grammar")
+
+class CurriculumGraphEdge(Base):
+    __tablename__ = "curriculum_graph_edges"
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    source_module_id: Mapped[int] = mapped_column(ForeignKey("modules.id"))
+    target_module_id: Mapped[int] = mapped_column(ForeignKey("modules.id"))
+    relationship_type: Mapped[str] = mapped_column(String(50))
 
 class IngestionJob(Base):
     __tablename__ = "ingestion_jobs"
@@ -76,5 +84,5 @@ class IngestionJob(Base):
     book_id: Mapped[int] = mapped_column(ForeignKey("books.id"), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="pending") 
     error_message: Mapped[str] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))

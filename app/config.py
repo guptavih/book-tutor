@@ -9,5 +9,6 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///./tutor.db"
     redis_url: str = "redis://localhost:6379/0"
     chroma_path: str = "./chroma_data"
+    groq_api_key: str = ""
 
 settings = Settings()
