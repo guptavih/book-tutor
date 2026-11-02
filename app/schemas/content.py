@@ -1,30 +1,55 @@
 from pydantic import BaseModel, Field
 from typing import List
 
-class ExtractedVocabulary(BaseModel):
-    term: str = Field(description="The vocabulary word in the target language")
-    definition: str = Field(description="The translation or definition in English")
-    example_sentence: str = Field(description="The sentence from the book using this word")
-    cefr_level: str = Field(description="Estimated CEFR level: A1, A2, B1, B2, C1, or C2")
-    frequency_rank: int = Field(description="Estimated frequency rank of the word (1-10000)")
+# --- Shared Base Contract ---
+class LinkedContext(BaseModel):
+    """Every agent output must carry this to preserve state."""
+    book_id: int
+    unit_id: int
+    module_id: int
 
-class ExtractedGrammar(BaseModel):
-    rule: str = Field(description="The grammar rule (e.g., Passé Composé, Plural Nouns)")
-    explanation: str = Field(description="Explanation of the rule based on the text")
-    example_sentence: str = Field(description="An example sentence from the text")
+# --- Ingestion Schemas ---
+class ExtractedVocabulary(LinkedContext):
+    term: str
+    definition: str
+    example_sentence: str
+    cefr_level: str
+    frequency_rank: int
+
+class ExtractedGrammar(LinkedContext):
+    rule: str
+    explanation: str
+    example_sentence: str
 
 class ExtractedModule(BaseModel):
-    title: str = Field(description="A short, descriptive title for this module")
-    learning_objective: str = Field(description="What the learner will achieve (e.g., Learn common adjectives)")
-    source_excerpt: str = Field(description="The exact text from the book this module covers")
-    vocabulary: List[ExtractedVocabulary] = Field(description="8 to 15 vocabulary items from the excerpt")
-    grammar: List[ExtractedGrammar] = Field(description="1 to 2 grammar points from the excerpt")
+    title: str
+    learning_objective: str
+    source_excerpt: str
+    vocabulary: List[ExtractedVocabulary]
+    grammar: List[ExtractedGrammar]
 
 class ExtractedUnit(BaseModel):
-    title: str = Field(description="The chapter title")
-    modules: List[ExtractedModule] = Field(description="A list of modules derived from this chapter")
+    title: str
+    modules: List[ExtractedModule]
 
 class LanguageLevelAnalysis(BaseModel):
-    detected_language: str = Field(description="The language of the text (e.g., 'French', 'Spanish', 'English')")
-    cefr_level: str = Field(description="Estimated CEFR level: A1, A2, B1, B2, C1, or C2")
-    reasoning: str = Field(description="Brief explanation of why this level was chosen")
+    detected_language: str
+    cefr_level: str
+    reasoning: str
+
+# --- Tutoring Schemas (Week 4 Additions) ---
+class Exercise(BaseModel):
+    question: str
+    correct_answer: str
+    exercise_type: str # e.g., "fill-in-the-blank", "multiple choice"
+
+class ExercisePack(BaseModel):
+    module_id: int
+    exercises: List[Exercise]
+
+class FeedbackArtifact(BaseModel):
+    exercise_question: str
+    user_answer: str
+    is_correct: bool
+    explanation: str
+    suggested_review: str | None = None

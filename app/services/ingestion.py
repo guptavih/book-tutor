@@ -1,3 +1,4 @@
+from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models import Book, Unit, Module, VocabularyItem, GrammarPoint, IngestionJob, CurriculumGraphEdge
 from app.ingestion.chunker import structural_partition, semantic_size_enforcement
@@ -15,6 +16,9 @@ async def process_book_ingestion(db: AsyncSession, book: Book):
         await db.commit()
 
     previous_module_id = None # Keep track of the last module to build the graph
+
+    existing_units_result = await db.execute(select(Unit).where(Unit.book_id == book.id))
+    existing_titles = {unit.title for unit in existing_units_result.scalars().all()}
 
     for i, chunk in enumerate(chunks):
         print(f"Processing chunk {i+1}/{len(chunks)}: {chunk['title']}")
@@ -82,5 +86,19 @@ async def process_book_ingestion(db: AsyncSession, book: Book):
     if job:
         job.status = "pending_review"
         await db.commit()
+
+    last_module_result = await db.execute(
+        select(Module).join(Unit).where(Unit.book_id == book.id).order_by(Module.id.desc()).limit(1)
+    )
+    last_module = last_module_result.scalar_one_or_none()
+    previous_module_id = last_module.id if last_module else None
+
+    for i, chunk in enumerate(chunks):
+        # CHECKPOINT: Skip if this unit is already in the database
+        if chunk["title"] in existing_titles:
+            print(f"Skipping (already processed): {chunk['title']}")
+            continue
+
+        print(f"Processing chunk {i+1}/{len(chunks)}: {chunk['title']}")
         
     print("Ingestion complete. Units, Modules, and Graph saved as drafts.")

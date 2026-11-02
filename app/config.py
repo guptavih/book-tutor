@@ -10,5 +10,7 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     chroma_path: str = "./chroma_data"
     groq_api_key: str = ""
+    llm_provider: str = "groq"
+    llm_model: str = "openai/gpt-oss-120b"
 
 settings = Settings()
