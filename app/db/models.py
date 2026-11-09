@@ -68,6 +68,7 @@ class GrammarPoint(Base):
     is_idiom: Mapped[bool] = mapped_column(Boolean, default=False) 
     
     module: Mapped["Module"] = relationship(back_populates="grammar")
+    artifacts: Mapped[list["GrammarArtifact"]] = relationship(back_populates="grammar_point")
 
 class CurriculumGraphEdge(Base):
     __tablename__ = "curriculum_graph_edges"
@@ -86,3 +87,29 @@ class IngestionJob(Base):
     error_message: Mapped[str] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
+
+class GrammarArtifact(Base):
+    __tablename__ = "grammar_artifacts"
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    grammar_point_id: Mapped[int] = mapped_column(ForeignKey("grammar_points.id"))
+    
+    inductive_discovery: Mapped[str] = mapped_column(Text) 
+    explicit_rule: Mapped[str] = mapped_column(Text)       
+    contrastive_note: Mapped[str] = mapped_column(Text)    
+    controlled_drills: Mapped[str] = mapped_column(Text)   
+    free_production_prompt: Mapped[str] = mapped_column(Text) 
+    
+    grammar_point: Mapped["GrammarPoint"] = relationship(back_populates="artifacts")
+
+class MistakeRecord(Base):
+    __tablename__ = "mistake_records"
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    learner_id: Mapped[int] = mapped_column(Integer) # For now, just an integer ID
+    module_id: Mapped[int] = mapped_column(Integer)
+    exercise_id: Mapped[int] = mapped_column(Integer) # 0 for conversational mistakes
+    user_answer: Mapped[str] = mapped_column(Text)
+    correct_answer: Mapped[str] = mapped_column(Text)
+    error_type: Mapped[str] = mapped_column(String(50)) # e.g., "grammar", "vocabulary"
+    timestamp: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
